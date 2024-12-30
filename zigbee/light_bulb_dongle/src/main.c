@@ -37,12 +37,11 @@ BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
 
 #if defined(CONFIG_BOARD_NRF52840DONGLE_NRF52840)
 	/* LED indicating that light switch successfully joind Zigbee network. */
-	#define ZIGBEE_NETWORK_STATE_LED        DK_LED3
+	#define ZIGBEE_NETWORK_STATE_LED        DK_LED1
 	/* LED immitaing dimmable light bulb - define for informational
 	* purposes only.
 	*/
-	#define BULB_LED                        DK_LED1
-	#define RUN_STATUS_LED                  DK_LED2
+	#define BULB_LED                        DK_LED2
 
 	/* Button used to enter the Bulb into the Identify mode. */
 	#define IDENTIFY_MODE_BUTTON            DK_BTN1_MSK
@@ -101,7 +100,7 @@ BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
 /* Use onboard led4 to act as a light bulb.
  * The app.overlay file has this at node label "pwm_led3" in /pwmleds.
  */
-#define PWM_DK_LED4_NODE                DT_NODELABEL(pwm_led3)
+#define PWM_DK_LED_RED_NODE                DT_NODELABEL(pwm_led_red)
 
 /* Nordic PWM nodes don't have flags cells in their specifiers, so
  * this is just future-proofing.
@@ -110,11 +109,11 @@ BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
 	COND_CODE_1(DT_PHA_HAS_CELL(node, pwms, flags), \
 		    (DT_PWMS_FLAGS(node)), (0))
 
-#if DT_NODE_HAS_STATUS(PWM_DK_LED4_NODE, okay)
+#if DT_NODE_HAS_STATUS(PWM_DK_LED_RED_NODE, okay)
 /* Get the defines from overlay file. */
-#define PWM_DK_LED4_CTLR                DT_PWMS_CTLR(PWM_DK_LED4_NODE)
-#define PWM_DK_LED4_CHANNEL             DT_PWMS_CHANNEL(PWM_DK_LED4_NODE)
-#define PWM_DK_LED4_FLAGS               FLAGS_OR_ZERO(PWM_DK_LED4_NODE)
+#define PWM_DK_LED_RED_CTLR                DT_PWMS_CTLR(PWM_DK_LED_RED_NODE)
+#define PWM_DK_LED_RED_CHANNEL             DT_PWMS_CHANNEL(PWM_DK_LED_RED_NODE)
+#define PWM_DK_LED_RED_FLAGS               FLAGS_OR_ZERO(PWM_DK_LED_RED_NODE)
 #else
 #error "Choose supported PWM driver"
 #endif
@@ -247,7 +246,7 @@ static void button_changed(uint32_t button_state, uint32_t has_changed)
 /**@brief Function for initializing additional PWM leds. */
 static void pwm_led_init(void)
 {
-	led_pwm_dev = DEVICE_DT_GET(PWM_DK_LED4_CTLR);
+	led_pwm_dev = DEVICE_DT_GET(PWM_DK_LED_RED_CTLR);
 	if (!device_is_ready(led_pwm_dev)) {
 		LOG_ERR("Error: PWM device %s is not ready",
 			led_pwm_dev->name);
@@ -281,8 +280,8 @@ static void light_bulb_set_brightness(zb_uint8_t brightness_level)
 {
 	uint32_t pulse = brightness_level * LED_PWM_PERIOD_US / 255U;
 
-	if (pwm_pin_set_usec(led_pwm_dev, PWM_DK_LED4_CHANNEL,
-			     LED_PWM_PERIOD_US, pulse, PWM_DK_LED4_FLAGS)) {
+	if (pwm_pin_set_usec(led_pwm_dev, PWM_DK_LED_RED_CHANNEL,
+			     LED_PWM_PERIOD_US, pulse, PWM_DK_LED_RED_FLAGS)) {
 		LOG_ERR("Pwm led 4 set fails:\n");
 		return;
 	}
@@ -364,7 +363,13 @@ static void toggle_identify_led(zb_bufid_t bufid)
 {
 	static int blink_status;
 
-	light_bulb_set_brightness(((++blink_status) % 2) ? (255U) : (0U));
+	// light_bulb_set_brightness(((++blink_status) % 2) ? (255U) : (0U));
+	if( (++blink_status) % 2 )
+		dk_set_led_on(ZIGBEE_NETWORK_STATE_LED);
+	else
+		dk_set_led_off(ZIGBEE_NETWORK_STATE_LED);
+	zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
+
 	ZB_SCHEDULE_APP_ALARM(toggle_identify_led, bufid, ZB_MILLISECONDS_TO_BEACON_INTERVAL(100));
 }
 
@@ -555,7 +560,7 @@ void zboss_signal_handler(zb_bufid_t bufid)
 
 void main(void)
 {
-	int blink_status = 0;
+	// int blink_status = 0;
 	int err;
 
 	/* Initialize */
@@ -602,8 +607,8 @@ void main(void)
 	LOG_INF("ZBOSS Light Bulb example started");
 
 	while (1) {
-		dk_set_led(RUN_STATUS_LED, (++blink_status) % 2);
-		k_sleep(K_MSEC(RUN_LED_BLINK_INTERVAL));
+		// dk_set_led(RUN_STATUS_LED, (++blink_status) % 2);
+		// k_sleep(K_MSEC(RUN_LED_BLINK_INTERVAL));
 	}
 
 }

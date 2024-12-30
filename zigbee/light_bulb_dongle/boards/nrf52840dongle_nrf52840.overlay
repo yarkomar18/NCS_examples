@@ -7,12 +7,11 @@
  / {
 	chosen {
 		zephyr,entropy = &rng;
-		zephyr,console = &cdc_acm_uart0;
 	};
 
 	pwmleds {
-		pwm_led3: pwm_led_3 {
-			pwms = <&pwm0 6>;
+		pwm_led_red: pwm_led_0 {
+			pwms = <&pwm0 8>;
 		};
 	};
 
@@ -26,7 +25,7 @@
 
 	aliases {
 		rst0 = &rst_button0;
-		pwm-led3 = &pwm_led3;
+		pwm-led3 = &pwm_led_red;
 	};
 };
 
@@ -38,7 +37,7 @@
 };
 
 &pwm0 {
-	ch3-pin = <6>;
+	ch3-pin = <8>;
 	ch3-inverted;
 	/delete-property/ ch0-pin;
 	/delete-property/ ch1-pin;
