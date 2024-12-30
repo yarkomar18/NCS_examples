@@ -36,24 +36,26 @@ BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
 #endif /* CONFIG_USB_DEVICE_STACK */
 
 #if defined(CONFIG_BOARD_NRF52840DONGLE_NRF52840)
-/* LED indicating that light switch successfully joind Zigbee network. */
-#define ZIGBEE_NETWORK_STATE_LED        DK_LED4
-/* LED immitaing dimmable light bulb - define for informational
- * purposes only.
- */
-#define BULB_LED                        DK_LED1
-/* Button used to enter the Bulb into the Identify mode. */
-#define IDENTIFY_MODE_BUTTON            DK_BTN1_MSK
+	/* LED indicating that light switch successfully joind Zigbee network. */
+	#define ZIGBEE_NETWORK_STATE_LED        DK_LED3
+	/* LED immitaing dimmable light bulb - define for informational
+	* purposes only.
+	*/
+	#define BULB_LED                        DK_LED1
+	#define RUN_STATUS_LED                  DK_LED2
+
+	/* Button used to enter the Bulb into the Identify mode. */
+	#define IDENTIFY_MODE_BUTTON            DK_BTN1_MSK
 #else
-#define RUN_STATUS_LED                  DK_LED1
-/* LED indicating that light switch successfully joind Zigbee network. */
-#define ZIGBEE_NETWORK_STATE_LED        DK_LED3
-/* LED immitaing dimmable light bulb - define for informational
- * purposes only.
- */
-#define BULB_LED                        DK_LED4
-/* Button used to enter the Bulb into the Identify mode. */
-#define IDENTIFY_MODE_BUTTON            DK_BTN4_MSK
+	#define RUN_STATUS_LED                  DK_LED1
+	/* LED indicating that light switch successfully joind Zigbee network. */
+	#define ZIGBEE_NETWORK_STATE_LED        DK_LED3
+	/* LED immitaing dimmable light bulb - define for informational
+	* purposes only.
+	*/
+	#define BULB_LED                        DK_LED4
+	/* Button used to enter the Bulb into the Identify mode. */
+	#define IDENTIFY_MODE_BUTTON            DK_BTN4_MSK
 #endif
 
 #define RUN_LED_BLINK_INTERVAL          1000
@@ -553,29 +555,15 @@ void zboss_signal_handler(zb_bufid_t bufid)
 
 void main(void)
 {
-	#if !defined(CONFIG_BOARD_NRF52840DONGLE_NRF52840)
 	int blink_status = 0;
-	#endif
 	int err;
 
-	#ifdef CONFIG_USB_DEVICE_STACK
-	const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
-	uint32_t dtr = 0;
-
-	if (usb_enable(NULL)) {
-		return;
+	/* Initialize */
+	configure_gpio();
+	err = settings_subsys_init();
+	if (err) {
+		LOG_ERR("settings initialization failed");
 	}
-
-	/* Poll if the DTR flag was set */
-	while (!dtr) {
-		uart_line_ctrl_get(dev, UART_LINE_CTRL_DTR, &dtr);
-		/* Give CPU resources to low priority threads. */
-		k_sleep(K_MSEC(100));
-	}
-
-	int console_init(void);
-	#endif /* CONFIG_USB_DEVICE_STACK */
-
 
 	LOG_INF("Starting ZBOSS Light Bulb example");
 
@@ -609,13 +597,13 @@ void main(void)
 
 	/* Start Zigbee default thread */
 	zigbee_enable();
+	zb_set_channel_mask((1l << 15));
 
 	LOG_INF("ZBOSS Light Bulb example started");
 
 	while (1) {
-		#if !defined(CONFIG_BOARD_NRF52840DONGLE_NRF52840)
 		dk_set_led(RUN_STATUS_LED, (++blink_status) % 2);
-		#endif
 		k_sleep(K_MSEC(RUN_LED_BLINK_INTERVAL));
 	}
+
 }
